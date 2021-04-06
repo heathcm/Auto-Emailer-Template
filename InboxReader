@@ -1,0 +1,70 @@
+import os
+import imaplib
+import email, email.parser
+from email.header import decode_header 
+
+host = 'imap.gmail.com'
+username = os.environ.get('email_username')
+alias = os.environ.get['email_alias']
+password = os.environ.get('email_username')
+
+def read(num_messages = 1):
+    replies=[]
+    imap = imaplib.IMAP4_SSL(host) 
+    imap.login(username, password) 
+    imap.select('INBOX')
+    _, messages = imap.search(None,'UnSeen') 
+    messages = messages[0].split() 
+  
+    num_messages = min(num_messages, len(messages))
+    if len(messages) < 1:
+        return replies
+
+    latest = int(messages[-1]) 
+    oldest = int(messages[0])
+    
+    for i in range(latest, latest-num_messages, -1): 
+        _, msg = imap.fetch(str(i), "(RFC822)") 
+      
+        for response in msg: 
+            if isinstance(response, tuple): 
+  
+               msg = email.message_from_bytes(response[1]) 
+               # print required information 
+               date_str = str(msg["Date"])
+               from_str = str(msg["From"])
+               subject_str = str(msg["Subject"])
+
+               #print to console
+               print(date_str)
+               print(from_str)
+               print(subject_str)
+
+
+               #write file meta
+               filePath = "inbox\yougotmail.txt"
+               fp = open(filePath, 'a')
+               fp.write(date_str+'\n')
+               fp.write(from_str+'\n')
+               fp.write(subject_str+'\n') 
+
+               #look through message body
+               for part in msg.walk(): 
+                   if part.get_content_type() == "text/plain":
+                       #write the file body
+                       body = part.get_payload(decode = True) 
+                       #fp.write(body.decode('utf-8'))
+                       print(body.decode('utf-8'))
+                       #get attachments
+                       #filename = part.get_filename()
+                       #if bool(filename):
+                       fp.write(str(part.get_payload(decode=True)))   #...
+                       
+                       #close file
+               replies.append(from_str)
+               fp.write('**********\n')
+               fp.close() 
+    imap.close()
+    imap.logout()
+    print(from_str)
+    return replies
