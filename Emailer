@@ -1,0 +1,50 @@
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from templates import Template
+
+# environment variables
+username = os.environ.get('email_username')
+alias = os.environ.get['email_alias']
+password = os.environ.get('email_username')
+
+class Emailer():
+    to_emails=[]
+    from_email = alias_ + ' ' +  username
+    def __init__(self, subject="", template_name="greet.txt", context={}, to_emails=[]):
+        assert isinstance(to_emails, list)
+        self.to_emails=to_emails
+        self.subject = subject
+        self.template_name = template_name
+        self.context = context
+        self.to_emails = to_emails
+
+
+    def format_msg(self):
+        msg = MIMEMultipart('alternative')
+        msg['From'] = self.from_email
+        msg['To'] = ", ".join(self.to_emails)
+        msg['Subject'] = self.subject
+        if self.template_name != None:
+            tmpl_str = Template(template_name = self.template_name, context = self.context)
+        txt_part = MIMEText(tmpl_str.render(), 'plain')
+        msg.attach(txt_part)
+        return msg.as_string()
+
+
+    def send_mail(self):
+        msg = self.format_msg()
+        did_send = False
+        with smtplib.SMTP(host='smtp.gmail.com', port=587) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(username, password)
+            try:
+                server.sendmail(self.from_email, self.to_emails, msg)
+                did_send = True
+            except:
+                did_send = False
+            server.quit()
+        print("message sent: " + str(did_send))
+        return did_send
